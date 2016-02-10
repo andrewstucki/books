@@ -29,20 +29,22 @@ export class Typeahead extends Component {
   handleChange(event) {
     const { search } = this.props
     const { value } = event.target
-
-    if (value === "") return
+    this.setInputValue(value)
     if (this.searchRequest) clearTimeout(this.searchRequest)
 
-    this.setInputValue(value)
+    if (value === "") return
+
     this.searchRequest = setTimeout(() => search(value), 800)
   }
 
   handleOptionChange(event, option) {
-    this.setInputValue(option.title);
+    this.props.createBook(option)
+    this.setInputValue('')
   }
 
   handleOptionClick(event, option) {
-    this.setInputValue(option.title);
+    this.props.createBook(option)
+    this.setInputValue('')
   }
 
   setInputValue(value) {
@@ -59,5 +61,6 @@ function mapStateToProps(state) {
 }
 
 export default connect(mapStateToProps, {
-  search: books.search
+  search: books.search,
+  createBook: books.create
 })(Typeahead)

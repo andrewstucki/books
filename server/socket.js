@@ -1,6 +1,6 @@
 var hat = require('hat');
 var WebSocketServer = require('websocket').server;
-var _ = require('underscore');
+var _ = require('lodash');
 
 var config = require('./config');
 
@@ -18,7 +18,7 @@ module.exports = {
       connections[key].sendUTF(JSON.stringify({
         type: 'update',
         entity: 'users',
-        payload: user
+        payload: user.renderJson()
       }));
     }
   },
@@ -34,16 +34,21 @@ module.exports = {
     }
   },
 
-  removeRequests: function(users, requests) {
+  removeRequests: function(requests, users) {
     //send only to particular users
     if (!websocket) return;
-    for (var key in users) {
-      connections[associations[key]].sendUTF(JSON.stringify({
-        type: 'remove',
-        entity: 'requests',
-        payload: requests
-      }));
-    }
+    users.forEach(function(user) {
+      if (!associations.hasOwnProperty(user)) return;
+      associations[user].forEach(function(socket) {
+        var connection = connections[socket];
+        if (!connection) return;
+        connection.sendUTF(JSON.stringify({
+          type: 'remove',
+          entity: 'requests',
+          payload: requests
+        }));
+      });
+    });
   },
 
   addBook: function(book) {
@@ -52,24 +57,56 @@ module.exports = {
       connections[key].sendUTF(JSON.stringify({
         type: 'add',
         entity: 'books',
-        payload: book
+        payload: book.renderJson()
       }));
     }
   },
 
-  addRequest: function(users, request) {
+  updateBook: function(book) {
+    if (!websocket) return;
+    for (var key in connections) {
+      connections[key].sendUTF(JSON.stringify({
+        type: 'update',
+        entity: 'books',
+        payload: book.renderJson()
+      }));
+    }
+  },
+
+  addRequest: function(request, users) {
     //send only to particular users
     if (!websocket) return;
-    for (var key in users) {
-      connections[associations[key]].sendUTF(JSON.stringify({
-        type: 'add',
-        entity: 'requests',
-        payload: request
-      }));
-    }
+    users.forEach(function(user) {
+      if (!associations.hasOwnProperty(user)) return;
+      associations[user].forEach(function(socket) {
+        var connection = connections[socket];
+        if (!connection) return;
+        connection.sendUTF(JSON.stringify({
+          type: 'add',
+          entity: 'requests',
+          payload: request.renderJson()
+        }));
+      });
+    });
   },
 
-  createSocket: function(app) {
+  updateRequest: function(request, users) {
+    if (!websocket) return;
+    users.forEach(function(user) {
+      if (!associations.hasOwnProperty(user)) return;
+      associations[user].forEach(function(socket) {
+        var connection = connections[socket];
+        if (!connection) return;
+        connection.sendUTF(JSON.stringify({
+          type: 'update',
+          entity: 'requests',
+          payload: request.renderJson()
+        }));
+      });
+    });
+  },
+
+  createSocket: function(app, models) { //need to inject these due to circular dependencies
     if (!!websocket) return;
 
     websocket = new WebSocketServer({
@@ -85,29 +122,33 @@ module.exports = {
       connections[id] = connection;
       connection.on('close', function() {
         delete connections[id]
+        var filteredAssociations = _.pickBy(associations, function(value) {
+          return value.indexOf(id) !== -1;
+        });
+        _.each(filteredAssociations, function(value, key) {
+          associations[key] = _.without(value, id);
+        });
       });
 
       connection.on('message', function(message) {
         if (message.type === 'utf8') {
           try {
             var command = JSON.parse(message.utf8Data);
-
             switch(command.type) {
             case 'login':
-              models.User.findOne({ sessionToken: command.data.sessionToken, confirmed: true }).then(function(user) {
-                associations[user._id] = id;
-              }).catch(function(err) {
-                console.log("Invalid login socket request: " + err);
+              return models.User.findOne({ sessionToken: command.data, confirmed: true }).then(function(user) {
+                if (!user) return;
+                associations[user._id] = associations[user._id] || [];
+                associations[user._id].push(id);
               });
             case 'logout':
-              models.User.findOne({ sessionToken: command.data.sessionToken, confirmed: true }).then(function(user) {
-                delete associations[user._id];
-              }).catch(function(err) {
-                console.log("Invalid logout socket request: " + err);
+              return models.User.findOne({ sessionToken: command.data, confirmed: true }).then(function(user) {
+                if (!user) return;
+                associations[user._id] = _.without(associations[user._id], id);;
               });
             }
           } catch(err) {
-            console.log("Unable to parse JSON: " + message.utf8Data);
+            console.log("Invalid socket auth request: " + err + "; Request: " + message.utf8Data);
           }
         }
       });

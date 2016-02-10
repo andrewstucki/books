@@ -1,8 +1,12 @@
-import omit from 'lodash/object'
+import { omit } from 'lodash/object'
 import { routerStateReducer as router } from 'redux-router'
 import { combineReducers } from 'redux'
 
 import { constants, flash } from '../actions'
+
+function clearCache(state, entities) {
+  return Object.assign({}, omit(state, entities.concat(entities.map(entity => `${entity}Loaded`))))
+}
 
 function handleCache(state, entity, value, setLoaded = true) {
   let flagLoaded = false
@@ -50,10 +54,11 @@ function auth(state = { isAuthenticated: false, user: {} }, action) {
   }
 }
 
-function cache(state = { users: {}, venues: {}, venuesLoaded: false, usersLoaded: false }, action) {
+function cache(state = { books: {}, pendingRequests: {}, submittedRequests: {}, booksLoaded: false, pendingRequestsLoaded: false, submittedRequestsLoaded: false }, action) {
   const { type, entity, value } = action
   switch(type) {
   case constants.BOOKS_SUCCESS:
+  case constants.BOOK_ADD:
   case constants.REQUEST_ADD:
     return handleCache(state, entity, value)
   case constants.USER_BOOKS_SUCCESS:
@@ -61,6 +66,8 @@ function cache(state = { users: {}, venues: {}, venuesLoaded: false, usersLoaded
   case constants.REQUEST_REMOVE:
   case constants.BOOKS_REMOVE:
     return removeCache(state, entity, value)
+  case constants.LOGOUT_SUCCESS:
+    return clearCache(state, ['pendingRequests', 'submittedRequests'])
   default:
     return state
   }
@@ -93,6 +100,8 @@ function bookOptions(state = [], action) {
   const { type, entity, value } = action
   switch(type) {
     case "@@reduxReactRouter/routerDidChange":
+    case constants.LOGOUT_SUCCESS:
+    case constants.CREATE_BOOK_REQUEST:
       return []
     case constants.BOOK_SEARCH_SUCCESS:
       return value

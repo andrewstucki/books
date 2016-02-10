@@ -123,7 +123,7 @@ router.get("/users/:id/books", function(req, res) {
 });
 
 // books
-router.get("/books/search/:query", function(req, res) { //middleware.authenticate(true)
+router.get("/books/search/:query", middleware.authenticate(true), function(req, res) {
   models.Book.search(req.params.query).then(function(books) {
     return res.status(200).json(books);
   }).catch(handleError.bind(this, res));
@@ -139,10 +139,14 @@ router.get("/books", function(req, res) {
 
 router.post("/books", jsonParser, middleware.authenticate(true), function(req, res) {
   if (!req.body) return invalid(res);
-  req.user.createBook(req.body.id, req.body.title, req.body.authors, req.body.thumbnail, req.body.link).then(function(books) {
-    return res.status(200).json(_.map(books, function(book) {
-      return book.renderJson();
-    }));
+  req.user.createBook(req.body.title, req.body.authors, req.body.thumbnail, req.body.link).then(function(book) {
+    return res.status(200).json(book.renderJson());
+  }).catch(handleError.bind(this, res));
+});
+
+router.delete("/books/:id", middleware.authenticate(true), function(req, res) {
+  req.user.deleteBook(req.params.id).then(function() {
+    return res.status(202).json({});
   }).catch(handleError.bind(this, res));
 });
 
@@ -193,4 +197,4 @@ module.exports = server.listen(config.port, function() {
   if (config.environment !== 'test') console.log('Books app listening on port ' + config.port + '!');
 });
 
-socket.createSocket(server);
+socket.createSocket(server, models);

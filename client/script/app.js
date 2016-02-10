@@ -12,19 +12,15 @@ if (process.env.NODE_ENV === 'production' && window.location.protocol !== "https
 if (process.env.NODE_ENV !== 'production') document.write('<script src="http://' + (window.location.host || 'localhost').split(':')[0] + ':35729/livereload.js"></' + 'script>')
 
 const token = localStorage.getItem("token")
-const location = localStorage.getItem("location")
 
 function initializeApplication(user) {
   let store
   if (user) {
     store = configureStore({
-      location,
       auth: { isAuthenticated: true, user: user },
     })
   } else {
-    store = configureStore({
-      location
-    })
+    store = configureStore()
   }
 
   const socket = new Socket(window.location.host || 'localhost', store)

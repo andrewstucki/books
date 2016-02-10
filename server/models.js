@@ -22,7 +22,7 @@ mongoose.connect(config.db);
 // utils
 
 var validateUrl = function(url) {
-  return /^(?:(?:https?|ftp):\/\/)(?:\S+(?::\S*)?@)?(?:(?!10(?:\.\d{1,3}){3})(?!127(?:\.\d{1,3}){3})(?!169\.254(?:\.\d{1,3}){2})(?!192\.168(?:\.\d{1,3}){2})(?!172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2})(?:[1-9]\d?|1\d\d|2[01]\d|22[0-3])(?:\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])){2}(?:\.(?:[1-9]\d?|1\d\d|2[0-4]\d|25[0-4]))|(?:(?:[a-z\x{00a1}-\x{ffff}0-9]+-?)*[a-z\x{00a1}-\x{ffff}0-9]+)(?:\.(?:[a-z\x{00a1}-\x{ffff}0-9]+-?)*[a-z\x{00a1}-\x{ffff}0-9]+)*(?:\.(?:[a-z\x{00a1}-\x{ffff}]{2,})))(?::\d{2,5})?(?:\S*)?$/iuS.test(url)
+  return /[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/.test(url)
 };
 
 // Users
@@ -208,13 +208,12 @@ userSchema.methods.pendingRequests = function() {
 };
 
 // user-books
-userSchema.methods.createBook = function(id, title, authors, thumbnail, link) {
+userSchema.methods.createBook = function(title, authors, thumbnail, link) {
   var user = this;
   return new promise(function(resolve, reject) {
     var validationErrors = bookValidation({ thumbnail: thumbnail, link: link });
     if (validationErrors.length !== 0) return reject(new errors.ModelInvalid(validationErrors.join("; ")));
     var params = {
-      bookId: id,
       user: user._id,
       title: title,
       authors: authors,
@@ -223,9 +222,26 @@ userSchema.methods.createBook = function(id, title, authors, thumbnail, link) {
     };
     new Book(params).save().then(function(book) {
       book.user = user;
+      socket.addBook(book);
       return resolve(book);
     }).catch(function(err) {
       if (err.code === 11000) return reject(new errors.ModelInvalid("Invalid Book"));
+      return reject(new errors.DatabaseFailure(err.toString()));
+    });
+  });
+};
+
+userSchema.methods.deleteBook = function(book) {
+  var user = this;
+  return new promise(function(resolve, reject) {
+    Book.findOneAndRemove({
+      _id: book,
+      user: user._id,
+    }).then(function(book) {
+      if (!book) return reject(new errors.NotFound('Book not found'));
+      socket.removeBooks([book._id]);
+      return resolve(book);
+    }).catch(function(err) {
       return reject(new errors.DatabaseFailure(err.toString()));
     });
   });
@@ -249,7 +265,7 @@ userSchema.methods.createRequest = function(owner, book) {
   return new promise(function(resolve, reject) {
     Book.findOne({
       owner: owner,
-      bookId: book
+      _id: book
     }).then(function(book) {
       if (!book) return reject(new errors.NotFound("Book does not belong to that user"));
       var validationErrors = requestValidation({ owner: owner, requestor: user._id, book: book });
@@ -262,6 +278,7 @@ userSchema.methods.createRequest = function(owner, book) {
       new Request(params).save().then(function(request) {
         request.populate(['book', 'owner', 'requestor'], function(err) {
           if (err) reject(new errors.ModelInvalid('Unable to populate references'));
+          socket.addRequest(request, [request.owner._id, request.requestor._id]);
           resolve(request);
         });
       }).catch(function(err) {
@@ -283,9 +300,30 @@ userSchema.methods.acceptRequest = function(request) {
       accepted: null
     }, { accepted: true }).then(function(request) {
       if (!request) return reject(new errors.NotFound('Request not found'));
-      request.populate(['book', 'owner', 'requestor'], function(err) {
-        if (err) reject(new errors.ModelInvalid('Unable to populate references'));
-        resolve(request);
+      Request.update({
+        book: request.book,
+        accepted: null
+      }, { accepted: false }).then(function(rejectedRequests) {
+        request.populate(['book', 'owner', 'requestor'], function(err) {
+          if (err) reject(new errors.ModelInvalid('Unable to populate references'));
+          book.user = request.requestor._id;
+          book.save().then(function(updated) {
+            socket.updateBook(book);
+            Request.populate(rejectedRequests, { path: 'owner requestor' }).then(function(rejectedRequests) {
+              rejectedRequests.forEach(function(request) {
+                socket.updateRequest(request, [request.owner._id, request.requestor._id]);
+              });
+            }).catch(function(err) {
+              console.log("Failed to populate rejected requests and notify users " + err);
+            });
+            socket.updateRequest(request, [request.owner._id, request.requestor._id]);
+            resolve(request);
+          }).catch(function(err) {
+            return reject(new errors.DatabaseFailure(err.toString()));
+          });
+        });
+      }).catch(function(err) {
+        return reject(new errors.DatabaseFailure(err.toString()));
       });
     }).catch(function(err) {
       return reject(new errors.DatabaseFailure(err.toString()));
@@ -304,6 +342,7 @@ userSchema.methods.rejectRequest = function(request) {
       if (!request) return reject(new errors.NotFound('Request not found'));
       request.populate(['book', 'owner', 'requestor'], function(err) {
         if (err) reject(new errors.ModelInvalid('Unable to populate references'));
+        socket.updateRequest(request, [request.owner._id, request.requestor._id]);
         resolve(request);
       });
     }).catch(function(err) {
@@ -320,8 +359,9 @@ userSchema.methods.deleteRequest = function(request) {
       requestor: user._id,
       accepted: null
     }).then(function(request) {
-      if (request) return resolve(request);
-      return reject(new errors.NotFound('Request not found'));
+      if (!request) return reject(new errors.NotFound('Request not found'));
+      socket.removeRequests([request._id], [request.owner._id, request.requestor._id]);
+      return resolve(request);
     }).catch(function(err) {
       return reject(new errors.DatabaseFailure(err.toString()));
     });
@@ -361,10 +401,6 @@ var User = mongoose.model('User', userSchema);
 
 // Books
 var bookSchema = new mongoose.Schema({
-  bookId: {
-    type: String,
-    required: true
-  },
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -387,7 +423,7 @@ var bookSchema = new mongoose.Schema({
 });
 
 var bookValidators = {
-  thumbnail: function(thubmnail) {
+  thumbnail: function(thumbnail) {
     return {
       valid: validateUrl(thumbnail),
       message: "Thumbnail must be a valid url."
@@ -406,10 +442,10 @@ var bookValidation = function(fields) {
   var linkValidation;
 
   if (fields.thumbnail) thumbnailValidation = bookValidators.thumbnail(fields.thumbnail);
-  if (fields.link) linkValidation = bookValidators.owner(fields.link);
+  if (fields.link) linkValidation = bookValidators.link(fields.link);
 
   var errors = []
-  if (thumbnailValidation && !rthumbnailValidation.valid) errors.push(thumbnailValidation.message);
+  if (thumbnailValidation && !thumbnailValidation.valid) errors.push(thumbnailValidation.message);
   if (linkValidation && !linkValidation.valid) errors.push(linkValidation.message);
 
   return errors;
@@ -420,7 +456,7 @@ bookSchema.statics.getBooksForUser = function(id) {
   return new promise(function(resolve, reject) {
     schema.find({
       user: id
-    }).then(resolve).catch(function(err) {
+    }).populate('user').then(resolve).catch(function(err) {
       return reject(new errors.DatabaseFailure(err.toString()));
     });
   });
@@ -474,7 +510,7 @@ bookSchema.statics.search = function(q) {
 
 bookSchema.methods.renderJson = function() {
   return {
-    id: this.bookId,
+    id: this._id,
     user: {
       id: this.user._id,
       username: this.user.username
@@ -552,7 +588,7 @@ requestSchema.methods.renderJson = function() {
   return {
     id: this._id,
     book: {
-      id: this.book.bookId,
+      id: this.book._id,
       title: this.book.title,
       authors: this.book.authors
     },

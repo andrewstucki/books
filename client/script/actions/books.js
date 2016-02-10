@@ -29,6 +29,15 @@ export function create(book) {
   }
 }
 
+export function deleteBook(id) {
+  return (dispatch, getState) => {
+    dispatch({ type: Constants.DELETE_BOOK_REQUEST })
+    return api(`/books/${id}`, { method: "delete", authentication: getState().auth.user.token })
+      .then(json => dispatch({ type: Constants.DELETE_BOOK_SUCCESS, entity: 'books', value: json }))
+      .catch(err => handleError(dispatch, Constants.DELETE_BOOK_FAILURE, err))
+  }
+}
+
 export function add(book) {
   return { type: Constants.BOOK_ADD, entity: 'books', value: book }
 }

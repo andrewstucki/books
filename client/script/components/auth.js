@@ -29,7 +29,8 @@ function generateAuthWrapper(Component, authCheck, renderCheck) {
 
 export function requireAuth(Component, confirmation) {
   return generateAuthWrapper(Component, function(props) {
-    if (!props.isAuthenticated || (!confirmation && props.user.confirmed)) return props.dispatch(pushState(null, '/login'))
+    if (typeof confirmation === 'undefined' && !props.isAuthenticated) return props.dispatch(pushState(null, '/login'))
+    if (!props.isAuthenticated || (typeof confirmation !== 'undefined' && !confirmation && props.user.confirmed)) return props.dispatch(pushState(null, '/login'))
   }, function(props) {
     if (typeof confirmation === 'undefined') return props.isAuthenticated
     return props.isAuthenticated && (!confirmation || props.user.confirmed)
