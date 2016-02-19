@@ -19,7 +19,7 @@ class App extends Component {
   }
 
   componentWillMount() {
-    if (this.props.isAuthenticated) {
+    if (this.props.isAuthenticated && this.props.currentUser.confirmed) {
       this.props.loadPendingRequests()
       this.props.loadSubmittedRequests()
     }
@@ -130,13 +130,13 @@ class App extends Component {
         </ul>
       )
     }
-    const username = this.props.currentUser.confirmed ? this.props.currentUser.username : <Link to='/resend'>{this.props.currentUser.username}</Link>
+    const username = this.props.currentUser.confirmed ? <Link to='/profile'>{this.props.currentUser.username}</Link> : <Link to='/resend'>{this.props.currentUser.username}</Link>
     return (
       <ul className="nav navbar-nav navbar-right">
         {this.renderSubmittedNotifications()}
         {this.renderPendingNotifications()}
         <li>
-          <p className="navbar-text">Hello <Link to='/profile'>{username}</Link></p>
+          <p className="navbar-text">Hello {username}</p>
         </li>
         <li>
           <a href="#" onClick={this.doLogout}>Log Out</a>
@@ -159,7 +159,7 @@ class App extends Component {
                 <span className="icon-bar"></span>
                 <span className="icon-bar"></span>
               </button>
-              <IndexLink className="navbar-brand" to="/">Night</IndexLink>
+              <IndexLink className="navbar-brand" to="/"><i className="fa fa-book"></i> Books!</IndexLink>
             </div>
             <div className="navbar-collapse collapse" id="navbar-main">
               {this.rightNavbar()}

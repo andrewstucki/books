@@ -1,5 +1,6 @@
 import React, {Component, PropTypes} from 'react'
 import { connect } from 'react-redux'
+import { Link } from 'react-router'
 
 import { books, requests } from '../actions'
 
@@ -9,11 +10,18 @@ class HomePage extends Component {
     this.setFilter = this.setFilter.bind(this)
     this.requestBook = this.requestBook.bind(this)
     this.removeBookRequest = this.removeBookRequest.bind(this)
-    this.state = { filter: '' }
+    this.excludeOwnedBooks = this.excludeOwnedBooks.bind(this)
+    this.state = { filter: '', excluded: false }
   }
 
   componentWillMount() {
     this.props.loadBooks()
+  }
+
+  excludeOwnedBooks() {
+    this.setState({
+      excluded: !this.state.excluded
+    })
   }
 
   requestBook(e) {
@@ -32,8 +40,11 @@ class HomePage extends Component {
   }
 
   filterBooks() {
-    if (this.state.filter === '') return this.props.books
-    return this.props.books.filter(book => {
+    const {user, books} = this.props
+    let filteredBooks = books
+    if (this.state.excluded) filteredBooks = books.filter(book => book.user.id !== user.id)
+    if (this.state.filter === '') return filteredBooks
+    return filteredBooks.filter(book => {
       return book.title.toLowerCase().indexOf(this.state.filter) !== -1 || book.authors.join(" ").toLowerCase().indexOf(this.state.filter) !== -1
     })
   }
@@ -48,6 +59,13 @@ class HomePage extends Component {
       <div>
         <div className="form-group">
           <input type="text" placeholder="Filter books..." onChange={this.setFilter} className="form-control" />
+        </div>
+        <div className="form-group">
+          <div className="checkbox">
+            <label>
+              <input type="checkbox" onChange={this.excludeOwnedBooks} value={this.state.excluded} /> Exclude my books
+            </label>
+          </div>
         </div>
         <div className="col-lg-12">
           {this.renderBooks()}
@@ -66,7 +84,7 @@ class HomePage extends Component {
           <div className="book-wrapper" style={{background: `url(${book.thumbnail}) no-repeat`, backgroundSize: 'cover'}}>
             <div className="book-overlay">
               <div className="book-controls">
-                { user && user.id ?
+                { user && user.id && user.confirmed ?
                     ((book.user.id === user.id) ?
                     "" :
                     <i className={
@@ -80,8 +98,8 @@ class HomePage extends Component {
                     }></i>) :
                     ""
                 }
-                <i className="fa fa-user user-book"></i>
-                <a href={book.link} target="_blank"><i className="fa fa-info-circle info-book"></i></a>
+                <Link to={book.user.id === user.id ? '/profile' : `/users/${book.user.id}`}><i className="fa fa-user user-book"></i></Link>
+                <a href={book.link} target="_blank"><i className="fa fa-info-circle info-book" style={{marginRight: 0}}></i></a>
               </div>
               <div className="book-title">
                 {book.title}<br/>

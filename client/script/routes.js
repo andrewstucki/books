@@ -19,7 +19,7 @@ export default (
     <Route path='/login' name='login' component={noAuth(LoginPage)} />
     <Route path='/signup' name='signup' component={noAuth(SignupPage)} />
     <Route path='/resend' name='resend' component={requireAuth(ResendPage, false)} />
-    <Route path='/profile' name='profile' component={requireAuth(ProfilePage)} />
+    <Route path='/profile' name='profile' component={requireAuth(ProfilePage, true)} />
     <Route path='/users/:id' name='user' component={UserPage} />
     <Route path='/books' name='books' component={BooksPage} />
   </Route>

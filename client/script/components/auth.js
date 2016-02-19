@@ -31,6 +31,7 @@ export function requireAuth(Component, confirmation) {
   return generateAuthWrapper(Component, function(props) {
     if (typeof confirmation === 'undefined' && !props.isAuthenticated) return props.dispatch(pushState(null, '/login'))
     if (!props.isAuthenticated || (typeof confirmation !== 'undefined' && !confirmation && props.user.confirmed)) return props.dispatch(pushState(null, '/login'))
+    if (typeof confirmation !== 'undefined' && props.isAuthenticated && confirmation && !props.user.confirmed) return props.dispatch(pushState(null, '/resend'))
   }, function(props) {
     if (typeof confirmation === 'undefined') return props.isAuthenticated
     return props.isAuthenticated && (!confirmation || props.user.confirmed)
