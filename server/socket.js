@@ -37,14 +37,15 @@ module.exports = {
   removeRequests: function(requests, users) {
     //send only to particular users
     if (!websocket) return;
-    users.forEach(function(user) {
+    _.values(users).forEach(function(user) {
       if (!associations.hasOwnProperty(user)) return;
+      var role = _.findKey(users, user);
       associations[user].forEach(function(socket) {
         var connection = connections[socket];
         if (!connection) return;
         connection.sendUTF(JSON.stringify({
           type: 'remove',
-          entity: 'requests',
+          entity: role === 'owner' ? 'pendingRequests' : 'submittedRequests',
           payload: requests
         }));
       });
@@ -76,14 +77,15 @@ module.exports = {
   addRequest: function(request, users) {
     //send only to particular users
     if (!websocket) return;
-    users.forEach(function(user) {
+    _.values(users).forEach(function(user) {
       if (!associations.hasOwnProperty(user)) return;
+      var role = _.findKey(users, user);
       associations[user].forEach(function(socket) {
         var connection = connections[socket];
         if (!connection) return;
         connection.sendUTF(JSON.stringify({
           type: 'add',
-          entity: 'requests',
+          entity: role === 'owner' ? 'pendingRequests' : 'submittedRequests',
           payload: request.renderJson()
         }));
       });
@@ -92,14 +94,15 @@ module.exports = {
 
   updateRequest: function(request, users) {
     if (!websocket) return;
-    users.forEach(function(user) {
+    _.values(users).forEach(function(user) {
       if (!associations.hasOwnProperty(user)) return;
+      var role = _.findKey(users, user);
       associations[user].forEach(function(socket) {
         var connection = connections[socket];
         if (!connection) return;
         connection.sendUTF(JSON.stringify({
           type: 'update',
-          entity: 'requests',
+          entity: role === 'owner' ? 'pendingRequests' : 'submittedRequests',
           payload: request.renderJson()
         }));
       });

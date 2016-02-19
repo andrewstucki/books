@@ -12,12 +12,17 @@ class App extends Component {
     super(props)
     this.handleDismissClick = this.handleDismissClick.bind(this)
     this.doLogout = this.doLogout.bind(this)
+    this.removeBookRequest = this.removeBookRequest.bind(this)
+    this.acceptBookRequest = this.acceptBookRequest.bind(this)
+    this.rejectBookRequest = this.rejectBookRequest.bind(this)
     this.preventDefault = this.preventDefault.bind(this)
   }
 
   componentWillMount() {
-    this.props.loadPendingRequests()
-    this.props.loadSubmittedRequests()
+    if (this.props.isAuthenticated) {
+      this.props.loadPendingRequests()
+      this.props.loadSubmittedRequests()
+    }
   }
 
   doLogout(e) {
@@ -32,6 +37,21 @@ class App extends Component {
 
   preventDefault(e) {
     e.preventDefault()
+  }
+
+  removeBookRequest(e) {
+    e.preventDefault()
+    this.props.deleteRequest(e.currentTarget.dataset.request)
+  }
+
+  acceptBookRequest(e) {
+    e.preventDefault()
+    this.props.acceptRequest(e.currentTarget.dataset.request)
+  }
+
+  rejectBookRequest(e) {
+    e.preventDefault()
+    this.props.rejectRequest(e.currentTarget.dataset.request)
   }
 
   renderMessage() {
@@ -53,29 +73,50 @@ class App extends Component {
     )
   }
 
-  renderNotifications() {
-    const { pendingRequests, submittedRequests } = this.props
+  renderSubmittedNotifications() {
+    const { submittedRequests } = this.props
+    const notificationIcon = <i className="fa fa-ellipsis-h"></i>
+    if (submittedRequests.length === 0) {
+      return (
+        <NavDropdown eventKey={4} title={notificationIcon} noCaret id="basic-nav-dropdown">
+          <MenuItem eventKey={4.1}>No Submitted Requests</MenuItem>
+        </NavDropdown>
+      )
+    }
+
+    const submitted = submittedRequests.map(request => {
+      return <MenuItem key={request.id}><i className="fa fa-times-circle" onClick={this.removeBookRequest} data-request={request.id}></i> {request.book.title}</MenuItem>
+    })
+    return (
+      <NavDropdown eventKey={4} title={notificationIcon} noCaret={true} id="basic-nav-dropdown">
+        {submitted}
+      </NavDropdown>
+    )
+  }
+
+  renderPendingNotifications() {
+    const { pendingRequests } = this.props
     const notificationIcon = <i className="fa fa-bell"></i>
-    if (pendingRequests.length === 0 && submittedRequests.length === 0) {
+    if (pendingRequests.length === 0) {
       return (
         <NavDropdown eventKey={3} title={notificationIcon} noCaret id="basic-nav-dropdown">
-          <MenuItem eventKey={3.1}>No Notifications</MenuItem>
+          <MenuItem eventKey={3.1}>No Pending Requests</MenuItem>
         </NavDropdown>
       )
     }
 
     const pending = pendingRequests.map(request => {
-      return <MenuItem key={request.id}>{request.book.title}</MenuItem>
+      return (
+        <MenuItem key={request.id}>
+          <i className="fa fa-check-circle" onClick={this.acceptBookRequest} data-request={request.id}></i>
+          <i className="fa fa-minus-circle" onClick={this.rejectBookRequest} data-request={request.id}></i>
+          {request.book.title}
+        </MenuItem>
+      )
     })
-    const submitted = submittedRequests.map(request => {
-      return <MenuItem key={request.id}>{request.book.title}</MenuItem>
-    })
-    const divider = submitted.length > 0 && pending.length > 0 ? <MenuItem divider /> : ""
     return (
       <NavDropdown eventKey={3} title={notificationIcon} noCaret={true} id="basic-nav-dropdown">
         {pending}
-        {divider}
-        {submitted}
       </NavDropdown>
     )
   }
@@ -92,7 +133,8 @@ class App extends Component {
     const username = this.props.currentUser.confirmed ? this.props.currentUser.username : <Link to='/resend'>{this.props.currentUser.username}</Link>
     return (
       <ul className="nav navbar-nav navbar-right">
-        {this.renderNotifications()}
+        {this.renderSubmittedNotifications()}
+        {this.renderPendingNotifications()}
         <li>
           <p className="navbar-text">Hello <Link to='/profile'>{username}</Link></p>
         </li>
@@ -160,5 +202,8 @@ export default connect(mapStateToProps, {
   resetMessage: flash.resetMessage,
   logout: auth.logout,
   loadPendingRequests: requests.pendingRequests,
-  loadSubmittedRequests: requests.submittedRequests
+  loadSubmittedRequests: requests.submittedRequests,
+  deleteRequest: requests.deleteRequest,
+  acceptRequest: requests.approve,
+  rejectRequest: requests.reject
 })(App)

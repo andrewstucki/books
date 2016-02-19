@@ -5,7 +5,12 @@ import { combineReducers } from 'redux'
 import { constants, flash } from '../actions'
 
 function clearCache(state, entities) {
-  return Object.assign({}, omit(state, entities.concat(entities.map(entity => `${entity}Loaded`))))
+  const newState = {}
+  entities.forEach(entity => {
+    newState[entity] = {}
+    newState[`${entity}Loaded`] = false
+  })
+  return Object.assign({}, omit(state, entities.concat(entities.map(entity => `${entity}Loaded`))), newState)
 }
 
 function handleCache(state, entity, value, setLoaded = true) {
@@ -58,12 +63,15 @@ function cache(state = { books: {}, pendingRequests: {}, submittedRequests: {}, 
   const { type, entity, value } = action
   switch(type) {
   case constants.BOOKS_SUCCESS:
+  case constants.PENDING_REQUESTS_SUCCESS:
+  case constants.SUBMITTED_REQUESTS_SUCCESS:
   case constants.BOOK_ADD:
+  case constants.BOOK_UPDATE:
   case constants.REQUEST_ADD:
     return handleCache(state, entity, value)
   case constants.USER_BOOKS_SUCCESS:
     return handleCache(state, entity, value, false)
-  case constants.REQUEST_REMOVE:
+  case constants.REQUESTS_REMOVE:
   case constants.BOOKS_REMOVE:
     return removeCache(state, entity, value)
   case constants.LOGOUT_SUCCESS:

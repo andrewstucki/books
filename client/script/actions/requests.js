@@ -44,7 +44,7 @@ export function deleteRequest(id) {
 export function approve(id) {
   return (dispatch, getState) => {
     dispatch({ type: Constants.APPROVE_REQUEST_REQUEST })
-    return api(`/requests/${id}/approve`, { method: "post", authentication: getState().auth.user.token })
+    return api(`/requests/${id}/accept`, { method: "post", authentication: getState().auth.user.token })
       .then(json => dispatch({ type: Constants.APPROVE_REQUEST_SUCCESS, entity: 'requests', value: json }))
       .catch(err => handleError(dispatch, Constants.APPROVE_REQUEST_FAILURE, err))
   }
@@ -59,10 +59,14 @@ export function reject(id) {
   }
 }
 
-export function add(request) {
-  return { type: Constants.REQUEST_ADD, entity: 'requests', value: request }
+export function add(entity, request) {
+  return { type: Constants.REQUEST_ADD, entity: entity, value: request }
 }
 
-export function remove(requests) {
-  return { type: Constants.REQUESTS_REMOVE, entity: 'requests', value: requests }
+export function remove(entity, requests) {
+  return { type: Constants.REQUESTS_REMOVE, entity: entity, value: requests }
+}
+
+export function update(entity, request) {
+  return remove(entity, [request.id])
 }

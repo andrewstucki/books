@@ -45,3 +45,7 @@ export function add(book) {
 export function remove(books) {
   return { type: Constants.BOOKS_REMOVE, entity: 'books', value: books }
 }
+
+export function update(book) {
+  return { type: Constants.BOOK_UPDATE, entity: 'books', value: book }
+}

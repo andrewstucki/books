@@ -23,13 +23,15 @@ export default class Socket {
     const { type, entity, payload } = data
     switch(type) {
     case 'update':
+      if (entity === 'books') return this.store.dispatch(books.update(payload))
       if (entity === 'users') return this.store.dispatch(users.update(payload))
+      if (entity === 'submittedRequests' || entity === 'pendingRequests') return this.store.dispatch(requests.update(entity, payload))
     case 'remove':
       if (entity === 'books') return this.store.dispatch(books.remove(payload))
-      if (entity === 'requests') return this.store.dispatch(requests.remove(payload))
+      if (entity === 'submittedRequests' || entity === 'pendingRequests') return this.store.dispatch(requests.remove(entity, payload))
     case 'add':
       if (entity === 'books') return this.store.dispatch(books.add(payload))
-      if (entity === 'requests') return this.store.dispatch(requests.add(payload))
+      if (entity === 'submittedRequests' || entity === 'pendingRequests') return this.store.dispatch(requests.add(entity, payload))
     }
   }
 

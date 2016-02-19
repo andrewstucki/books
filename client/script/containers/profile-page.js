@@ -97,7 +97,7 @@ export class ProfilePage extends Component {
     return books.map(book => {
       return (
         <div key={book.id} className="list-group-item">
-          {book.id}: {book.title} <span data-book={book.id} onClick={this.deleteBook}>x</span>
+          <i data-book={book.id} onClick={this.deleteBook} className="fa fa-times-circle remove-book"></i> {book.title}
         </div>
       )
     })

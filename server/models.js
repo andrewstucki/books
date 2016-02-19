@@ -235,7 +235,7 @@ userSchema.methods.deleteBook = function(book) {
   var user = this;
   return new promise(function(resolve, reject) {
     Book.findOneAndRemove({
-      _id: book,
+      _id: mongoose.Types.ObjectId(book),
       user: user._id,
     }).then(function(book) {
       if (!book) return reject(new errors.NotFound('Book not found'));
@@ -263,9 +263,10 @@ userSchema.methods.submittedRequests = function() {
 userSchema.methods.createRequest = function(owner, book) {
   var user = this;
   return new promise(function(resolve, reject) {
+    if (mongoose.Types.ObjectId(owner) === user._id) return reject(new errors.ModelInvalid("You cannot request your own book!"));
     Book.findOne({
-      owner: owner,
-      _id: book
+      user: mongoose.Types.ObjectId(owner),
+      _id: mongoose.Types.ObjectId(book)
     }).then(function(book) {
       if (!book) return reject(new errors.NotFound("Book does not belong to that user"));
       var validationErrors = requestValidation({ owner: owner, requestor: user._id, book: book });
@@ -275,14 +276,19 @@ userSchema.methods.createRequest = function(owner, book) {
         requestor: user._id,
         book: book._id
       };
-      new Request(params).save().then(function(request) {
-        request.populate(['book', 'owner', 'requestor'], function(err) {
-          if (err) reject(new errors.ModelInvalid('Unable to populate references'));
-          socket.addRequest(request, [request.owner._id, request.requestor._id]);
-          resolve(request);
+      Request.findOne(_.extend({}, params, {accepted: null})).then(function(request) {
+        if (request) return reject(new errors.ModelInvalid('You have already requested this book!'));
+        new Request(params).save().then(function(request) {
+          request.populate(['book', 'owner', 'requestor'], function(err) {
+            if (err) reject(new errors.ModelInvalid('Unable to populate references'));
+            socket.addRequest(request, {owner: request.owner._id, requestor: request.requestor._id});
+            resolve(request);
+          });
+        }).catch(function(err) {
+          if (err.code === 11000) return reject(new errors.ModelInvalid('Model invalid'));
+          return reject(new errors.DatabaseFailure(err.toString()));
         });
       }).catch(function(err) {
-        if (err.code === 11000) return reject(new errors.ModelInvalid('Model invalid'));
         return reject(new errors.DatabaseFailure(err.toString()));
       });
     }).catch(function(err) {
@@ -295,7 +301,7 @@ userSchema.methods.acceptRequest = function(request) {
   var user = this;
   return new promise(function(resolve, reject) {
     Request.findOneAndUpdate({
-      _id: request,
+      _id: mongoose.Types.ObjectId(request),
       owner: user._id,
       accepted: null
     }, { accepted: true }).then(function(request) {
@@ -304,19 +310,22 @@ userSchema.methods.acceptRequest = function(request) {
         book: request.book,
         accepted: null
       }, { accepted: false }).then(function(rejectedRequests) {
+        //Reject all other requests
         request.populate(['book', 'owner', 'requestor'], function(err) {
           if (err) reject(new errors.ModelInvalid('Unable to populate references'));
-          book.user = request.requestor._id;
-          book.save().then(function(updated) {
-            socket.updateBook(book);
-            Request.populate(rejectedRequests, { path: 'owner requestor' }).then(function(rejectedRequests) {
-              rejectedRequests.forEach(function(request) {
-                socket.updateRequest(request, [request.owner._id, request.requestor._id]);
+          request.book.user = request.requestor;
+          request.book.save().then(function(updated) {
+            socket.updateBook(request.book);
+            if (rejectedRequests.length > 0) {
+              Request.populate(rejectedRequests, { path: 'owner requestor' }).then(function(rejectedRequests) {
+                rejectedRequests.forEach(function(request) {
+                  socket.updateRequest(request, {owner: request.owner._id, requestor: request.requestor._id});
+                });
+              }).catch(function(err) {
+                console.log("Failed to populate rejected requests and notify users " + err);
               });
-            }).catch(function(err) {
-              console.log("Failed to populate rejected requests and notify users " + err);
-            });
-            socket.updateRequest(request, [request.owner._id, request.requestor._id]);
+            }
+            socket.updateRequest(request, {owner: request.owner._id, requestor: request.requestor._id});
             resolve(request);
           }).catch(function(err) {
             return reject(new errors.DatabaseFailure(err.toString()));
@@ -335,14 +344,14 @@ userSchema.methods.rejectRequest = function(request) {
   var user = this;
   return new promise(function(resolve, reject) {
     Request.findOneAndUpdate({
-      _id: request,
+      _id: mongoose.Types.ObjectId(request),
       owner: user._id,
       accepted: null
     }, { accepted: false }).then(function(request) {
       if (!request) return reject(new errors.NotFound('Request not found'));
       request.populate(['book', 'owner', 'requestor'], function(err) {
         if (err) reject(new errors.ModelInvalid('Unable to populate references'));
-        socket.updateRequest(request, [request.owner._id, request.requestor._id]);
+        socket.updateRequest(request, {owner: request.owner._id, requestor: request.requestor._id});
         resolve(request);
       });
     }).catch(function(err) {
@@ -355,12 +364,12 @@ userSchema.methods.deleteRequest = function(request) {
   var user = this;
   return new promise(function(resolve, reject) {
     Request.findOneAndRemove({
-      _id: request,
+      _id: mongoose.Types.ObjectId(request),
       requestor: user._id,
       accepted: null
-    }).then(function(request) {
+    }).populate(['requestor', 'owner']).then(function(request) {
       if (!request) return reject(new errors.NotFound('Request not found'));
-      socket.removeRequests([request._id], [request.owner._id, request.requestor._id]);
+      socket.removeRequests([request._id], {owner: request.owner._id, requestor: request.requestor._id});
       return resolve(request);
     }).catch(function(err) {
       return reject(new errors.DatabaseFailure(err.toString()));
@@ -465,7 +474,7 @@ bookSchema.statics.getBooksForUser = function(id) {
 bookSchema.statics.search = function(q) {
   var query = {
     q: q,
-    fields: 'items(id,volumeInfo(title,authors,imageLinks,infoLink))',
+    fields: 'items(id,volumeInfo(title,authors,imageLinks,infoLink,maturityRating))',
     printType: 'books'
   };
   return new promise(function(resolve, reject) {
@@ -481,6 +490,7 @@ bookSchema.statics.search = function(q) {
           if (!data.items) reject(new Error("Invalid payload received"));
           var books = _.uniqBy(data.items.map(function(book) {
             if (!book.volumeInfo) return null;
+            if (book.volumeInfo.maturityRating !== 'NOT_MATURE') return null;
             var bookInfo = { title: book.volumeInfo.title, id: book.id, link: book.volumeInfo.infoLink };
             if (book.volumeInfo.imageLinks && book.volumeInfo.imageLinks.smallThumbnail) bookInfo.thumbnail = book.volumeInfo.imageLinks.smallThumbnail;
             if (book.volumeInfo.authors) bookInfo.authors = book.volumeInfo.authors;
