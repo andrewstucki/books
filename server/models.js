@@ -201,7 +201,7 @@ userSchema.methods.pendingRequests = function() {
     Request.find({
       owner: user._id,
       accepted: null
-    }).then(resolve).catch(function(err) {
+    }).populate(['book', 'requestor', 'owner']).then(resolve).catch(function(err) {
       reject(new errors.DatabaseFailure(err.toString()));
     });
   });
@@ -254,7 +254,7 @@ userSchema.methods.submittedRequests = function() {
     Request.find({
       requestor: user._id,
       accepted: null
-    }).then(resolve).catch(function(err) {
+    }).populate(['book', 'requestor', 'owner']).then(resolve).catch(function(err) {
       reject(new errors.DatabaseFailure(err.toString()));
     });
   });

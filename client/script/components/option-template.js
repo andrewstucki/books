@@ -3,7 +3,7 @@ import React, { Component } from 'react'
 export default class OptionTemplate extends Component {
   render() {
     return (
-      <div className={`yt-option${ this.props.isSelected ? ' yt-selected-option' : ''}`}>
+      <div className={`book-option${ this.props.isSelected ? ' book-selected-option' : ''}`}>
         {this.renderOption()}
       </div>
     )

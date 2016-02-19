@@ -5,10 +5,11 @@ import { auth, flash } from '../actions'
 class LoginPage extends Component {
   constructor(props) {
     super(props)
-
-    let { query } = this.props.location
-
     this.doLogin = this.doLogin.bind(this)
+  }
+
+  componentWillMount() {
+    let { query } = this.props.location
     if (query.confirmed) {
       this.props.setMessage(flash.SUCCESS, "Thanks for confirming your account, please log in below")
     }

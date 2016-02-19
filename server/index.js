@@ -130,7 +130,7 @@ router.get("/books/search/:query", middleware.authenticate(true), function(req, 
 });
 
 router.get("/books", function(req, res) {
-  models.Book.find({}).then(function(books) {
+  models.Book.find({}).populate('user').then(function(books) {
     return res.status(200).json(_.map(books, function(book) {
       return book.renderJson();
     }));

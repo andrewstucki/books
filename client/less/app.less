@@ -89,3 +89,67 @@
 .label-as-badge {
   border-radius: 1em;
 }
+
+//books
+.book {
+  text-align: center;
+  margin-bottom: 50px;
+}
+
+.book-overlay {
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  background-color: rgba(0,0,0,.6);
+  -webkit-transition: opacity .25s ease;
+  -moz-transition: opacity .25s ease;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+.book-title {
+  color: #fff;
+}
+
+.book-controls {
+  color: #eee;
+  font-size: 20px;
+
+  i {
+    margin-right: 10px;
+    cursor: pointer;
+
+    &:last-child {
+      margin-right: 0px;
+    }
+  }
+}
+
+.book-wrapper {
+  margin: 0 auto;
+  height: 180px;
+  width: 140px;
+}
+
+//typeahead
+.react-typeahead-input.form-control[disabled]{
+  background-color: #fff;
+}
+
+.react-typeahead-options {
+  z-index: 1;
+  margin: 0;
+  padding: 0;
+  list-style-type: none;
+  border-bottom: solid 1px #ddd;
+}
+
+.book-option {
+  padding: 10px;
+  border-width: 1px 0;
+  border: solid 1px #ddd;
+  border-bottom: 0;
+  cursor: pointer;
+}

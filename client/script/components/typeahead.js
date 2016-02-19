@@ -11,18 +11,20 @@ export class Typeahead extends Component {
     this.handleChange = this.handleChange.bind(this)
     this.handleOptionChange = this.handleOptionChange.bind(this)
     this.handleOptionClick = this.handleOptionClick.bind(this)
-    this.state = { inputValue: '' }
+    this.state = {}
   }
 
   render() {
     return (
       <TypeaheadComponent
+        placeholder={this.props.placeholder}
         inputValue={this.state.inputValue}
         options={this.props.options}
         onChange={this.handleChange}
         optionTemplate={OptionTemplate}
         onOptionChange={this.handleOptionChange}
-        onOptionClick={this.handleOptionClick} />
+        onOptionClick={this.handleOptionClick}
+        nestedClassName={` ${this.props.className}`} />
     )
   }
 
