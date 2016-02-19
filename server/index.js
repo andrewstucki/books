@@ -1,6 +1,7 @@
 require('dotenv').load();
 
 var server = require('http').createServer();
+var mongoose = require('mongoose');
 var express = require('express');
 var bodyParser = require('body-parser');
 var _ = require('lodash');
@@ -87,6 +88,7 @@ router.get("/profile", middleware.authenticate(), function(req, res) {
 });
 
 router.put("/profile", jsonParser, middleware.authenticate(), function(req, res) {
+  //update the user
   return res.status(202).json({})
 });
 
@@ -114,6 +116,15 @@ router.post("/signup", jsonParser, function(req, res) {
 });
 
 // users
+router.get("/users/:id", function(req, res) {
+  models.User.findById(mongoose.Types.ObjectId(req.params.id)).then(function(user) {
+    console.log(user)
+    // models.User.findById(mongoose.Types.ObjectId(req.params.id)).then(console.log)
+    if (!user) throw new errors.NotFound()
+    return res.status(200).json(user.renderJson());
+  }).catch(handleError.bind(this, res));
+});
+
 router.get("/users/:id/books", function(req, res) {
   models.Book.getBooksForUser(req.params.id).then(function(books) {
     return res.status(200).json(_.map(books, function(book) {

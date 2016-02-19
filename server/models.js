@@ -137,7 +137,10 @@ userSchema.statics.confirm = function(token) {
       if (!user) return reject(new errors.NotFound("Token not found"));
       user.confirmed = true;
       user.confirmationToken = undefined;
-      return user.save().then(resolve).catch(function(err){
+      return user.save().then(function(user) {
+        resolve(user)
+        socket.updateUser(user);
+      }).catch(function(err){
         if (err.code === 11000) return reject(new errors.ModelInvalid("Invalid User"));
         return reject(new errors.DatabaseFailure(err.toString()));
       });
@@ -386,6 +389,15 @@ userSchema.methods.renderToken = function() {
     email: this.email,
     confirmed: this.confirmed,
     token: this.sessionToken
+  };
+};
+
+userSchema.methods.renderJson = function() {
+  return {
+    id: this._id,
+    username: this.username,
+    name: this.name,
+    gravatarId: this.gravatarId
   };
 };
 

@@ -26,12 +26,15 @@ export default class Socket {
       if (entity === 'books') return this.store.dispatch(books.update(payload))
       if (entity === 'users') return this.store.dispatch(users.update(payload))
       if (entity === 'submittedRequests' || entity === 'pendingRequests') return this.store.dispatch(requests.update(entity, payload))
+      break
     case 'remove':
       if (entity === 'books') return this.store.dispatch(books.remove(payload))
       if (entity === 'submittedRequests' || entity === 'pendingRequests') return this.store.dispatch(requests.remove(entity, payload))
+      break
     case 'add':
       if (entity === 'books') return this.store.dispatch(books.add(payload))
       if (entity === 'submittedRequests' || entity === 'pendingRequests') return this.store.dispatch(requests.add(entity, payload))
+      break
     }
   }
 

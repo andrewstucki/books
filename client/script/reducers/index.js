@@ -59,7 +59,7 @@ function auth(state = { isAuthenticated: false, user: {} }, action) {
   }
 }
 
-function cache(state = { books: {}, pendingRequests: {}, submittedRequests: {}, booksLoaded: false, pendingRequestsLoaded: false, submittedRequestsLoaded: false }, action) {
+function cache(state = { users: {}, books: {}, pendingRequests: {}, submittedRequests: {}, booksLoaded: false, pendingRequestsLoaded: false, submittedRequestsLoaded: false }, action) {
   const { type, entity, value } = action
   switch(type) {
   case constants.BOOKS_SUCCESS:
@@ -67,6 +67,8 @@ function cache(state = { books: {}, pendingRequests: {}, submittedRequests: {}, 
   case constants.SUBMITTED_REQUESTS_SUCCESS:
   case constants.BOOK_ADD:
   case constants.BOOK_UPDATE:
+  case constants.USER_UPDATE:
+  case constants.USER_SUCCESS:
   case constants.REQUEST_ADD:
     return handleCache(state, entity, value)
   case constants.USER_BOOKS_SUCCESS:

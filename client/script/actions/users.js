@@ -11,6 +11,16 @@ export function books(id, forceUpdate = false) {
   }
 }
 
+export function load(id) {
+  return (dispatch, getState) => {
+    if (getState().cache.users[id]) return null
+    dispatch({ type: Constants.USER_REQUEST })
+    return api(`/users/${id}`)
+      .then(json => dispatch({ type: Constants.USER_SUCCESS, entity: 'users', value: json }))
+      .catch(err => handleError(dispatch, Constants.USER_FAILURE, err))
+  }
+}
+
 export function update(user) {
   return { type: Constants.USER_UPDATE, entity: 'users', value: user }
 }
