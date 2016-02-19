@@ -47,6 +47,13 @@ function auth(state = { isAuthenticated: false, user: {} }, action) {
       isAuthenticated: true,
       user: value
     }
+  case constants.USER_UPDATE:
+    if (value.id === state.user.id)
+    return {
+      isAuthenticated: true,
+      user: Object.assign({}, state.user, value)
+    }
+    break
   case constants.LOGOUT_SUCCESS:
   case constants.LOGIN_FAILURE:
     localStorage.removeItem("token")

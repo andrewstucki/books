@@ -52,7 +52,7 @@ export class UserPage extends Component {
       <div>
         <div className="col-lg-12 user-info">
           <img src={`http://www.gravatar.com/avatar/${user.gravatarId}?s=50&d=mm`} className='user-avatar' />
-          <h3 className="user-inline">{ user.username }{user.name ? <span className="user-subtext"> ({user.name})</span> : '' }</h3>
+          <h3 className="user-inline">{ user.username }{user.name ? <span className="user-subtext"> ({user.name})</span> : '' }{user.location ? <span className="user-subtext"> - {user.location}</span> : ''}</h3>
         </div>
         <div className="form-group">
           <input type="text" placeholder="Filter books..." onChange={this.setFilter} className="form-control" />

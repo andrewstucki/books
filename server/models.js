@@ -32,6 +32,9 @@ var userSchema = new mongoose.Schema({
     required: true,
     unique: true
   },
+  location: {
+    type: String
+  },
   name: {
     type: String
   },
@@ -206,6 +209,38 @@ userSchema.methods.pendingRequests = function() {
       accepted: null
     }).populate(['book', 'requestor', 'owner']).then(resolve).catch(function(err) {
       reject(new errors.DatabaseFailure(err.toString()));
+    });
+  });
+};
+
+userSchema.methods.updateProfile = function(profile) {
+  var user = this;
+  return new promise(function(resolve, reject) {
+    if (!profile.password || !profile.confirmation || (profile.password !== profile.confirmation)) return reject(new errors.ModelInvalid("Must supply matching password and confirmation"));
+    bcrypt.compare(profile.password, user.password, function(err, match) {
+      if (err) return reject(new Error("Bcrypt error: " + err.toString()));
+      if (!match) return reject(new errors.ModelInvalid("Password Mismatch"));
+
+      var params = {};
+      if (profile.username) params.username = profile.username;
+      if (profile.email) params.email = profile.email;
+      if (profile.location) params.location = profile.location;
+      var validationErrors = userValidation(params);
+      if (validationErrors.length !== 0) return reject(new errors.ModelInvalid(validationErrors.join("; ")));
+
+      user.email = params.email || user.email;
+      user.username = params.username || user.username;
+      user.location = params.location || user.location;
+      user.save().then(function(updated) {
+        socket.updateUser(updated);
+        return resolve(updated);
+      }).catch(function(err) {
+        if (err.code === 11000) {
+          if (/email/.test(err.errmsg)) return reject(new errors.ModelInvalid('Email address already taken!'));
+          if (/username/.test(err.errmsg)) return reject(new errors.ModelInvalid('Username already taken!'));
+        }
+        return reject(new errors.DatabaseFailure(err.toString()));
+      });
     });
   });
 };
@@ -387,6 +422,7 @@ userSchema.methods.renderToken = function() {
     name: this.name,
     gravatarId: this.gravatarId,
     email: this.email,
+    location: this.location,
     confirmed: this.confirmed,
     token: this.sessionToken
   };
@@ -397,6 +433,7 @@ userSchema.methods.renderJson = function() {
     id: this._id,
     username: this.username,
     name: this.name,
+    location: this.location,
     gravatarId: this.gravatarId
   };
 };

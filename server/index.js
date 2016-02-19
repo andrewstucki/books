@@ -88,8 +88,9 @@ router.get("/profile", middleware.authenticate(), function(req, res) {
 });
 
 router.put("/profile", jsonParser, middleware.authenticate(), function(req, res) {
-  //update the user
-  return res.status(202).json({})
+  req.user.updateProfile(req.body).then(function(user) {
+    return res.status(202).json(user.renderJson());
+  }).catch(handleError.bind(this, res));
 });
 
 router.get("/confirm/:token", function(req, res) {
@@ -118,8 +119,6 @@ router.post("/signup", jsonParser, function(req, res) {
 // users
 router.get("/users/:id", function(req, res) {
   models.User.findById(mongoose.Types.ObjectId(req.params.id)).then(function(user) {
-    console.log(user)
-    // models.User.findById(mongoose.Types.ObjectId(req.params.id)).then(console.log)
     if (!user) throw new errors.NotFound()
     return res.status(200).json(user.renderJson());
   }).catch(handleError.bind(this, res));
