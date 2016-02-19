@@ -87,6 +87,15 @@ export class ProfilePage extends Component {
               { this.renderBooks() }
             </div>
           </div>
+          <div className="panel panel-default">
+            <div className="panel-heading"><h4>Danger Zone!</h4></div>
+            <div className="list-group">
+              <div className="list-group-item">
+                <p>The following actions cannot be undone, think carefully before using these.</p>
+                <button className="btn btn-danger btn-block">Delete My Account</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     )

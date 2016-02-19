@@ -75,7 +75,7 @@ class App extends Component {
 
   renderSubmittedNotifications() {
     const { submittedRequests } = this.props
-    const notificationIcon = <i className="fa fa-ellipsis-h"></i>
+    let notificationIcon = <i className="fa fa-ellipsis-h"></i>
     if (submittedRequests.length === 0) {
       return (
         <NavDropdown eventKey={4} title={notificationIcon} noCaret id="basic-nav-dropdown">
@@ -84,6 +84,12 @@ class App extends Component {
       )
     }
 
+    notificationIcon = (
+      <span>
+        {notificationIcon}
+        <span className="notification-badge label label-warning label-as-badge">{submittedRequests.length}</span>
+      </span>
+    )
     const submitted = submittedRequests.map(request => {
       return <MenuItem key={request.id}><i className="fa fa-times-circle" onClick={this.removeBookRequest} data-request={request.id}></i> {request.book.title}</MenuItem>
     })
@@ -96,7 +102,7 @@ class App extends Component {
 
   renderPendingNotifications() {
     const { pendingRequests } = this.props
-    const notificationIcon = <i className="fa fa-bell"></i>
+    let notificationIcon = <i className="fa fa-bell"></i>
     if (pendingRequests.length === 0) {
       return (
         <NavDropdown eventKey={3} title={notificationIcon} noCaret id="basic-nav-dropdown">
@@ -114,6 +120,13 @@ class App extends Component {
         </MenuItem>
       )
     })
+
+    notificationIcon = (
+      <span>
+        {notificationIcon}
+        <span className="notification-badge label label-success label-as-badge">{pendingRequests.length}</span>
+      </span>
+    )
     return (
       <NavDropdown eventKey={3} title={notificationIcon} noCaret={true} id="basic-nav-dropdown">
         {pending}
