@@ -72,12 +72,12 @@ function cache(state = { users: {}, books: {}, pendingRequests: {}, submittedReq
   case constants.BOOKS_SUCCESS:
   case constants.PENDING_REQUESTS_SUCCESS:
   case constants.SUBMITTED_REQUESTS_SUCCESS:
+    return handleCache(state, entity, value)
+  case constants.USER_SUCCESS:
+  case constants.REQUEST_ADD:
   case constants.BOOK_ADD:
   case constants.BOOK_UPDATE:
   case constants.USER_UPDATE:
-  case constants.USER_SUCCESS:
-  case constants.REQUEST_ADD:
-    return handleCache(state, entity, value)
   case constants.USER_BOOKS_SUCCESS:
     return handleCache(state, entity, value, false)
   case constants.REQUESTS_REMOVE:
