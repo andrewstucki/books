@@ -93,6 +93,12 @@ router.put("/profile", jsonParser, middleware.authenticate(), function(req, res)
   }).catch(handleError.bind(this, res));
 });
 
+router.delete("/profile", jsonParser, middleware.authenticate(), function(req, res) {
+  req.user.deleteProfile().then(function() {
+    return res.status(202).json({});
+  }).catch(handleError.bind(this, res));
+});
+
 router.get("/confirm/:token", function(req, res) {
   models.User.confirm(req.params.token).then(function(user) {
     return res.redirect('/login?confirmed=true');

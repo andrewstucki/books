@@ -245,6 +245,17 @@ userSchema.methods.updateProfile = function(profile) {
   });
 };
 
+userSchema.methods.deleteProfile = function() {
+  var user = this;
+  return new promise(function(resolve, reject) {
+    user.remove().then(function(user) {
+      return resolve(user);
+    }).catch(function(err) {
+      return reject(new errors.DatabaseFailure(err.toString()));
+    });
+  });
+};
+
 // user-books
 userSchema.methods.createBook = function(title, authors, thumbnail, link) {
   var user = this;
@@ -452,6 +463,24 @@ userSchema.pre('save', function(next) {
       user.password = hash;
       next();
     });
+  });
+});
+
+userSchema.pre('remove', function(next) {
+  Book.remove({user: this._id}).then(function(removed) {
+    if (removed.length > 0) socket.removeBooks(_.map(removed, function(record) { return record._id; }));
+    Request.remove({$or: [{'requestor': this._id}, {'owner': this._id}]}).then(function(removed) {
+      if (removed.length > 0) removed.forEach(function(request) {
+        socket.removeRequests([record._id], {owner: request.owner, requestor: request.requestor});
+      });
+      return next();
+    }).catch(function (err) {
+      console.log("Unable to remove requests associated with user: " + err);
+      return next(err);
+    });
+  }).catch(function (err) {
+    console.log("Unable to remove books owned by user: " + err);
+    return next(err);
   });
 });
 

@@ -30,6 +30,19 @@ export function updateProfile(profile) {
   }
 }
 
+export function deleteProfile() {
+  return (dispatch, getState) => {
+    dispatch({ type: Constants.DELETE_PROFILE_REQUEST })
+    return api('/profile', { method: 'delete', authentication: getState().auth.user.token })
+      .then(json => dispatch({ type: Constants.DELETE_PROFILE_SUCCESS, entity: 'users', value: json }))
+      .catch(err => handleError(dispatch, Constants.DELETE_PROFILE_FAILURE, err))
+  }
+}
+
 export function update(user) {
   return { type: Constants.USER_UPDATE, entity: 'users', value: user }
+}
+
+export function remove(user) {
+  return { type: Constants.USER_REMOVE, entity: 'users', value: user }
 }

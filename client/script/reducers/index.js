@@ -55,6 +55,7 @@ function auth(state = { isAuthenticated: false, user: {} }, action) {
     return state
   case constants.LOGOUT_SUCCESS:
   case constants.LOGIN_FAILURE:
+  case constants.DELETE_PROFILE_SUCCESS:
     localStorage.removeItem("token")
     return {
       isAuthenticated: false,
@@ -81,6 +82,7 @@ function cache(state = { users: {}, books: {}, pendingRequests: {}, submittedReq
     return handleCache(state, entity, value, false)
   case constants.REQUESTS_REMOVE:
   case constants.BOOKS_REMOVE:
+  case constants.USER_REMOVE:
     return removeCache(state, entity, value)
   case constants.LOGOUT_SUCCESS:
     return clearCache(state, ['pendingRequests', 'submittedRequests'])

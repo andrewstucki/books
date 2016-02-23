@@ -23,6 +23,17 @@ module.exports = {
     }
   },
 
+  removeUser: function(user) {
+    if (!websocket) return;
+    for (var key in connections) {
+      connections[key].sendUTF(JSON.stringify({
+        type: 'delete',
+        entity: 'users',
+        payload: user.renderJson()
+      }));
+    }
+  },
+
   removeBooks: function(books) {
     if (!websocket) return;
     for (var key in connections) {

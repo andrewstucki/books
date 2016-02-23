@@ -10,6 +10,7 @@ export class ProfilePage extends Component {
     this.updateProfile = this.updateProfile.bind(this)
     this.updateState = this.updateState.bind(this)
     this.deleteBook = this.deleteBook.bind(this)
+    this.deleteProfile = this.deleteProfile.bind(this)
     this.state = {
       profile: this.props.user
     }
@@ -25,6 +26,11 @@ export class ProfilePage extends Component {
   updateProfile(e) {
     e.preventDefault()
     this.props.updateProfile(this.state.profile)
+  }
+
+  deleteProfile(e) {
+    e.preventDefault()
+    this.props.deleteProfile()
   }
 
   updateState(e) {
@@ -114,7 +120,7 @@ export class ProfilePage extends Component {
             <div className="list-group">
               <div className="list-group-item">
                 <p>The following actions cannot be undone, think carefully before using these.</p>
-                <button className="btn btn-danger btn-block">Delete My Account</button>
+                <button className="btn btn-danger btn-block" onClick={this.deleteProfile}>Delete My Account</button>
               </div>
             </div>
           </div>
@@ -147,5 +153,6 @@ function mapStateToProps(state) {
 export default connect(mapStateToProps, {
   loadBooks: users.books,
   updateProfile: users.updateProfile,
+  deleteProfile: users.deleteProfile,
   deleteBook: books.deleteBook
 })(ProfilePage)
