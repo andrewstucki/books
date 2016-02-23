@@ -29,10 +29,10 @@ _.each(["html", "plain"], function(templateType) {
 
 var generateEmail = function(user, subject, templateName, context) {
   return {
-    from_email: "no.reply.voting.app+night@gmail.com",
-    from_name: "Night App",
+    from_email: "no.reply.voting.app+books@gmail.com",
+    from_name: "Books App",
     headers: {
-      "Reply-To": "no.reply.voting.app+night@gmail.com"
+      "Reply-To": "no.reply.voting.app+books@gmail.com"
     },
     html: templates.html[templateName](context),
     text: templates.plain[templateName](context),
@@ -52,7 +52,7 @@ module.exports = function(job, done) {
     if (!user) return done(new Error('user invalid'));
     var confirmationLink = config.baseUrl + "/api/v1/confirm/" + user.confirmationToken;
     mailer.messages.send({
-      message: generateEmail(user, "Confirm your Voting App email address!", "confirm", {
+      message: generateEmail(user, "Confirm your Books App email address!", "confirm", {
           confirmationLink: confirmationLink
         }),
       async: false
